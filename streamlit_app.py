@@ -106,7 +106,7 @@ with c_top2:
     idioma = st.radio("Language / Idioma:", ["🇪🇸 Español", "🇬🇧 English"], horizontal=True, label_visibility="collapsed")
 es_espanol = "Español" in idioma
 
-# --- DICCIONARIO BILINGÜE CENTRALIZADO ---
+# --- DICCIONARIO BILINGÜE COMPLETO ---
 TEXTOS = {
     "badge_top": "MOTOR MATEMÁTICO CNMC CIRCULAR 3/2020 ACTIVO" if es_espanol else "CNMC CIRCULAR 3/2020 MATHEMATICAL CORE ACTIVE",
     "titulo": "⚡ OptiVolt Industrial | Energy Workbench",
@@ -189,22 +189,22 @@ TEXTOS = {
     "meses": ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"] if es_espanol else ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 }
 
-# --- PRESETS DE PRUEBA ---
+# --- PRESETS DE PRUEBA (PERSONALIZADO SIEMPRE PRIMERO) ---
 PRESETS_DATA = {
-    ("Taller Mecanizado (Sobredimensionado)" if es_espanol else "CNC Metalworking Facility (Oversized)"): {
+    ("Personalizado (Mis datos de factura)" if es_espanol else "Custom Facility (My Invoice Data)"): {
+        "tarifa": "3.0TD", "p_act": [60.0, 60.0, 60.0, 60.0, 60.0, 60.0],
+        "p_max": [38.0, 42.0, 32.0, 28.0, 20.0, 16.0],
+        "cos_phi": 0.84, "p_media": 32.0, "multa_mes": 130.0, "cups": "ES0022000033445566CD1P"
+    },
+    ("Ejemplo 1: Taller Mecanizado" if es_espanol else "Demo 1: CNC Metalworking Facility"): {
         "tarifa": "3.0TD", "p_act": [90.0, 90.0, 90.0, 90.0, 90.0, 90.0],
         "p_max": [54.0, 58.0, 44.0, 36.0, 26.0, 22.0],
         "cos_phi": 0.78, "p_media": 48.0, "multa_mes": 240.0, "cups": "ES0021000045127891QZ1P"
     },
-    ("Planta Inyección de Plásticos" if es_espanol else "Plastic Injection Moulding Plant"): {
+    ("Ejemplo 2: Planta Inyección de Plásticos" if es_espanol else "Demo 2: Plastic Injection Plant"): {
         "tarifa": "3.0TD", "p_act": [140.0, 140.0, 140.0, 140.0, 140.0, 140.0],
         "p_max": [102.0, 108.0, 88.0, 78.0, 62.0, 50.0],
         "cos_phi": 0.81, "p_media": 85.0, "multa_mes": 310.0, "cups": "ES0031000088992211MN1P"
-    },
-    ("Personalizado (Mis datos)" if es_espanol else "Custom Facility"): {
-        "tarifa": "3.0TD", "p_act": [60.0, 60.0, 60.0, 60.0, 60.0, 60.0],
-        "p_max": [38.0, 42.0, 32.0, 28.0, 20.0, 16.0],
-        "cos_phi": 0.84, "p_media": 32.0, "multa_mes": 130.0, "cups": "ES0022000033445566CD1P"
     }
 }
 
@@ -351,7 +351,7 @@ with col_config:
             
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- ALGORITMO BOE ---
+# --- ALGORITMO BOE (RECALCULA EN TIEMPO REAL CON LOS NÚMEROS DE LAS CASILLAS) ---
 def optimizar_potencias(maximetros, p_min=15.001):
     n = len(maximetros)
     p_res = [max(float(m), p_min) for m in maximetros]
@@ -599,7 +599,6 @@ with col_exp1:
     else:
         st.warning(TEXTOS['warn_unlicensed'])
         
-        # Ambas opciones de precio mostradas en paralelo
         col_p1, col_p2 = st.columns(2)
         with col_p1:
             st.markdown(f"""
