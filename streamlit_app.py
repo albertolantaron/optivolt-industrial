@@ -30,7 +30,7 @@ if stripe_key and stripe:
 
 ADMIN_EMAILS = ["alberto.lantaron@gmail.com", "albertterre.lantaron@gmail.com"]
 
-# 👉 PEGA AQUÍ TU ENLACE DE PAGO DE STRIPE (39,00 €):
+# 👉 ENLACE REAL DE STRIPE (39,00 €):
 URL_STRIPE_39 = "https://buy.stripe.com/4gM9AV8hw6mG1dxaEC0Ny04"
 
 # --- CONSTANTES TÉCNICAS (BOE / CIRCULAR 3/2020 CNMC) ---
@@ -63,7 +63,7 @@ PRESETS_DATA = {
     }
 }
 
-# --- ESTILOS VISUALES: TITANIUM WORKBENCH (MÁXIMA LEGIBILIDAD) ---
+# --- ESTILOS VISUALES: TITANIUM WORKBENCH ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
@@ -74,7 +74,6 @@ st.markdown("""
         font-family: 'Plus Jakarta Sans', sans-serif;
     }
     
-    /* Inputs de alto contraste absoluto: fondo blanco, letras oscuras y bordes firmes */
     input, select, textarea, div[data-baseweb="input"] input {
         color: #0f172a !important;
         background-color: #ffffff !important;
@@ -137,12 +136,15 @@ T_SOBRECOSTE = "SOBRECOSTE ACTUAL" if es_espanol else "CURRENT INVOICED COST"
 T_OPTIMO = "COSTE TÉCNICO ÓPTIMO" if es_espanol else "OPTIMAL BOE CAPACITY COST"
 T_AHORRO = "AHORRO NETO AUDITADO" if es_espanol else "NET AUDITED ANNUAL SAVINGS"
 
-# --- VERIFICACIÓN DE LICENCIA ---
+# --- GESTIÓN DE LICENCIAS Y CUPS (MÁXIMO 2 CUPS POR 39 €) ---
 if "tipo_licencia" not in st.session_state:
     st.session_state.tipo_licencia = "ninguna"
 if "cliente_email" not in st.session_state:
     st.session_state.cliente_email = ""
+if "cups_registrados" not in st.session_state:
+    st.session_state.cups_registrados = []
 
+# Verificación de retorno de Stripe por Session ID
 session_id_param = st.query_params.get("session_id")
 if session_id_param and st.session_state.tipo_licencia == "ninguna":
     if stripe and stripe_key:
@@ -152,16 +154,16 @@ if session_id_param and st.session_state.tipo_licencia == "ninguna":
                 st.session_state.tipo_licencia = "pagada"
                 st.session_state.cliente_email = sesion.customer_details.email if sesion.customer_details else "Cliente Verificado"
                 st.balloons()
-                st.toast("🎉 Dictamen Oficial Desbloqueado." if es_espanol else "🎉 Official Dossier Unlocked.", icon="💎")
+                st.toast("🎉 Licencia de 2 Suministros Activada con Éxito.", icon="💎")
         except Exception:
             pass
 
 def comprobar_email_stripe(email_test):
     limpio = email_test.strip().lower()
     if limpio in [e.lower() for e in ADMIN_EMAILS]:
-        return True, "Acceso Maestro de Ingeniería Concedido"
+        return True, "Acceso Maestro (Ilimitado)"
     if not stripe or not stripe_key:
-        return False, "Conexión a Stripe no configurada."
+        return False, "Conexión a Stripe no disponible."
     try:
         clientes = stripe.Customer.list(email=limpio)
         if not clientes.data:
@@ -170,7 +172,7 @@ def comprobar_email_stripe(email_test):
             cargos = stripe.Charge.list(customer=c.id, limit=5)
             for cargo in cargos.data:
                 if cargo.paid and not cargo.refunded:
-                    return True, "Licencia Dictamen CNMC Activa (39€)"
+                    return True, "Licencia Empresa Activa (Bono 2 CUPS - 39€)"
         return False, "No consta pago completado."
     except Exception as e:
         return False, f"Error: {e}"
@@ -208,10 +210,14 @@ with col_preset:
     st.markdown("**📂 Cargar Escenario / Load Preset:**" if es_espanol else "**📂 Load Industrial Facility Preset:**")
     st.selectbox("Perfil de consumo:", list(PRESETS_DATA.keys()), key="selector_perfil", on_change=cambiar_perfil, label_visibility="collapsed")
     
+    es_admin = st.session_state.cliente_email.lower() in [e.lower() for e in ADMIN_EMAILS]
+    
     if st.session_state.tipo_licencia != "ninguna":
-        st.markdown(f'<span class="stat-badge stat-success">🟢 EXPEDIENTE DESBLOQUEADO ({st.session_state.cliente_email})</span>', unsafe_allow_html=True)
+        n_cups = len(st.session_state.cups_registrados)
+        info_cups = "Ilimitado (Admin)" if es_admin else f"{n_cups}/2 CUPS utilizados"
+        st.markdown(f'<span class="stat-badge stat-success">🟢 LICENCIA ACTIVA ({info_cups})</span>', unsafe_allow_html=True)
     else:
-        btn_txt = "⚡ Adquirir Dictamen Oficial (39 €)" if es_espanol else "⚡ Unlock Official Dossier (39 €)"
+        btn_txt = "⚡ Adquirir Bono 2 CUPS (39 €)" if es_espanol else "⚡ Get 2-CUPS License (39 €)"
         st.markdown(f'<a href="{URL_STRIPE_39}" target="_blank" style="background:#2563eb; color:white; display:block; text-align:center; padding:8px; border-radius:6px; font-weight:bold; font-size:13px; text-decoration:none; margin-top:8px;">{btn_txt}</a>', unsafe_allow_html=True)
         with st.expander("¿Ya pagaste? Valida tu email" if es_espanol else "Already paid? Validate email"):
             mail_val = st.text_input("Email Stripe:")
@@ -225,14 +231,14 @@ with col_preset:
                     st.error(msg)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- PANEL CENTRAL DE DATOS Y GRÁFICAS ---
+# --- PANEL CENTRAL: FORMULARIO Y GRÁFICAS ---
 col_config, col_analisis = st.columns([1.1, 1.9])
 
 with col_config:
     st.markdown('<div class="metric-panel">', unsafe_allow_html=True)
     st.subheader("1. Parámetros de Factura" if es_espanol else "1. Electricity Bill Parameters")
     
-    cups = st.text_input("Código CUPS / Supply Point ID:", key="cups_in")
+    cups = st.text_input("Código CUPS / Supply Point ID:", key="cups_in").strip().upper()
     tarifa = st.selectbox("Tarifa de Acceso / Grid Tariff:", list(PRECIOS_PEAJES.keys()), key="tarifa_in")
     
     c_m1, c_m2 = st.columns(2)
@@ -335,19 +341,34 @@ with col_analisis:
     st.plotly_chart(fig_roi, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
+# --- REGLA DE 2 CUPS POR LICENCIA ---
+tiene_licencia = st.session_state.tipo_licencia != "ninguna"
+
+# Si tiene licencia, registramos este CUPS en su cuota de 2
+cups_valido = False
+if tiene_licencia:
+    if es_admin:
+        cups_valido = True
+    else:
+        if cups in st.session_state.cups_registrados:
+            cups_valido = True
+        elif len(st.session_state.cups_registrados) < 2:
+            st.session_state.cups_registrados.append(cups)
+            cups_valido = True
+        else:
+            cups_valido = False
+
 # --- EXPEDIENTE DE 3 PÁGINAS ---
 st.markdown('<div class="metric-panel">', unsafe_allow_html=True)
 st.subheader("2. Expediente Técnico Oficial de Reclamación (3 Páginas)" if es_espanol else "2. Official 3-Page Technical Claim Dossier")
 
-es_pagado = st.session_state.tipo_licencia != "ninguna"
-
-def compilar_informe_html(licenciado, en_espanol=True):
-    blur = "" if licenciado else "filter: blur(6px); user-select: none; pointer-events: none;"
+def compilar_informe_html(desbloqueado, en_espanol=True):
+    blur = "" if desbloqueado else "filter: blur(6px); user-select: none; pointer-events: none;"
     
     filas_tabla = ""
     for i in range(6):
         ah = max(0.0, (p_act[i] - p_opt[i]) * precios[i])
-        val_opt_str = f"{p_opt[i]:.1f} kW" if licenciado else "🔒 [BLOQUEADO / LOCKED]"
+        val_opt_str = f"{p_opt[i]:.1f} kW" if desbloqueado else "🔒 [BLOQUEADO / LOCKED]"
         filas_tabla += f"""
         <tr>
             <td style="padding:6px; border:1px solid #94a3b8; text-align:center;"><strong>P{i+1}</strong></td>
@@ -390,7 +411,7 @@ def compilar_informe_html(licenciado, en_espanol=True):
         <div class="header-exp">
             <h2 style="margin:0; font-size:15pt; color:#0f172a;">{'DICTAMEN PERICIAL DE ADECUACIÓN DE POTENCIAS DE ACCESO' if en_espanol else 'OFFICIAL EXPERT OPINION ON POWER CAPACITY ALLOCATION'}</h2>
             <p style="margin:2px 0; font-size:8.5pt; color:#64748b;">CONFORME A CIRCULAR 3/2020 CNMC, R.D. 1164/2001 Y LEY 24/2013 DEL SECTOR ELÉCTRICO</p>
-            <p style="margin:2px 0; font-size:8pt; font-weight:bold;">REF REGISTRO: EXP-OPT-{cups[-6:]}-{datetime.date.today().strftime('%Y%m%d')}</p>
+            <p style="margin:2px 0; font-size:8pt; font-weight:bold;">REF REGISTRO: EXP-OPT-{cups[-6:] if len(cups)>=6 else 'GEN'}-{datetime.date.today().strftime('%Y%m%d')}</p>
         </div>
 
         <p style="font-size:9pt;"><strong>{'PUNTO DE SUMINISTRO (CUPS)' if en_espanol else 'SUPPLY POINT ID (CUPS)'}:</strong> {cups}<br>
@@ -458,30 +479,36 @@ def compilar_informe_html(licenciado, en_espanol=True):
     """
     return html
 
-html_expediente = compilar_informe_html(es_pagado, es_espanol)
+html_expediente = compilar_informe_html(cups_valido, es_espanol)
 
 col_exp1, col_exp2 = st.columns([1, 1])
 with col_exp1:
-    if es_pagado:
-        st.success("✅ EXPEDIENTE TÉCNICO COMPLETO DESBLOQUEADO (3 PÁGINAS)" if es_espanol else "✅ FULL 3-PAGE OFFICIAL DOSSIER UNLOCKED")
+    if cups_valido:
+        st.success(f"✅ DICTAMEN OFICIAL DESBLOQUEADO (CUPS: {cups})")
         st.download_button(
             label="📥 Descargar Dictamen Oficial Completo (PDF / HTML)" if es_espanol else "📥 Download Official Claim Dossier (PDF / HTML)",
             data=html_expediente,
-            file_name=f"Dictamen_Pericial_CNMC_{cups[-6:]}.html",
+            file_name=f"Dictamen_Pericial_CNMC_{cups[-6:] if len(cups)>=6 else 'GEN'}.html",
             mime="text/html",
             type="primary",
             use_container_width=True
         )
+        st.caption("Abre el archivo descargado y selecciona 'Guardar como PDF' en tu navegador.")
+    elif tiene_licencia and not cups_valido:
+        st.warning("⚠️ LÍMITE DE LICENCIA ALCANZADO (2/2 CUPS CONSUMIDOS)")
+        st.write(f"Tu licencia actual de 39 € ya está vinculada a tus 2 suministros autorizados: `{st.session_state.cups_registrados}`.")
+        st.info("Para auditar una tercera nave o nuevos clientes, adquiere una nueva licencia.")
+        st.markdown(f'<a href="{URL_STRIPE_39}" target="_blank" style="background:#2563eb; color:white; display:block; text-align:center; padding:12px; border-radius:6px; font-weight:bold; font-size:14px; text-decoration:none;">⚡ Adquirir Nueva Licencia de 2 CUPS (39 €)</a>', unsafe_allow_html=True)
     else:
         st.warning("🔒 VISTA PREVIA PROTEGIDA: Los valores óptimos y el escrito formal están bloqueados." if es_espanol else "🔒 PREVIEW PROTECTED: Optimal capacity values and legal claims are locked.")
         st.markdown(f"""
-        **{'¿Por qué abonar el dictamen de 39,00 €?' if es_espanol else 'Why purchase the 39.00 € technical opinion?'}**
-        - {'Obtienes los 6 valores exactos de kW (P1 a P6) optimizados.' if es_espanol else 'Instant access to all 6 exact optimal capacities (P1 to P6).'}
-        - {'Memoria técnica de la batería de condensadores de' if es_espanol else 'Engineering specification sheet for the'} **{qc_kvar} kVAr** {'con filtro de armónicos.' if es_espanol else 'capacitor bank with harmonic filtering.'}
-        - {'Escrito legal listo para firmar ante Comercializadoras.' if es_espanol else 'Signable legal notification enforceable before power utilities.'}
-        - **{'Garantía:' if es_espanol else 'ROI Guarantee:'}** {'Amortizado en menos de 5 días con el ahorro de' if es_espanol else 'Amortized in less than 5 days with the'} **{ahorro_total:,.2f} €/año**.
+        **Bono Empresa Incluye (39,00 €):**
+        - Cobertura para **hasta 2 Suministros (CUPS)** con borradores y revisiones ilimitadas (ideal para nave principal + almacén).
+        - Valores exactos de kW (P1 a P6) para la distribuidora.
+        - Memoria técnica de la batería de condensadores de **{qc_kvar} kVAr** con filtro antiarmónicos.
+        - Escrito legal formal para forzar la modificación contractual ante Comercializadoras.
         """)
-        btn_buy_txt = "💳 Desbloquear Dictamen Oficial Completo (39,00 €)" if es_espanol else "💳 Unlock Official Technical Dossier (39.00 €)"
+        btn_buy_txt = "💳 Desbloquear Bono 2 CUPS (39,00 €)" if es_espanol else "💳 Unlock 2-CUPS License (39.00 €)"
         st.markdown(f'<a href="{URL_STRIPE_39}" target="_blank" style="background:#2563eb; color:white; display:block; text-align:center; padding:12px; border-radius:6px; font-weight:bold; font-size:15px; text-decoration:none; margin:10px 0;">{btn_buy_txt}</a>', unsafe_allow_html=True)
         st.caption("🔒 Transacción segura procesada mediante Stripe Checkout.")
 
