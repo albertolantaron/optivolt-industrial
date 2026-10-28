@@ -6,7 +6,7 @@
 
 Professional B2B engineering SaaS designed to mathematically optimize industrial electricity billing (Tariffs **3.0TD** and **6.1TD**) and calculate automated capacitor banks with detuned harmonic filters, in compliance with **Spanish CNMC Circular 3/2020** and **Royal Decree 1164/2001**.
 
-👉 **Live Production URL:** [https://optivolt.streamlit.app](https://optivolt.streamlit.app)
+👉 **Live Production URL:** [https://optivolt-industrial.streamlit.app](https://optivolt-industrial.streamlit.app)
 
 ---
 
