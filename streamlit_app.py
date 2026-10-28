@@ -63,7 +63,7 @@ st.markdown("""
         background: #0f172a;
         color: #f8fafc;
         border-radius: 12px;
-        padding: 20px 28px;
+        padding: 22px 28px;
         margin-bottom: 20px;
         border-left: 6px solid #2563eb;
         box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
@@ -106,11 +106,12 @@ with c_top2:
     idioma = st.radio("Language / Idioma:", ["🇪🇸 Español", "🇬🇧 English"], horizontal=True, label_visibility="collapsed")
 es_espanol = "Español" in idioma
 
-# --- DICCIONARIO BILINGÜE COMPLETO ---
+# --- DICCIONARIO BILINGÜE CENTRALIZADO ---
 TEXTOS = {
     "badge_top": "MOTOR MATEMÁTICO CNMC CIRCULAR 3/2020 ACTIVO" if es_espanol else "CNMC CIRCULAR 3/2020 MATHEMATICAL CORE ACTIVE",
     "titulo": "⚡ OptiVolt Industrial | Energy Workbench",
     "subtitulo": "Auditoría Pericial de Término de Potencia, Maxímetros y Reactiva con Filtro de Armónicos" if es_espanol else "Quantitative Power Optimization (CNMC 3/2020) & Reactive Energy Harmonic Filtering Workbench",
+    "explicacion_rapida": "Introduce los datos de tu última factura eléctrica: el algoritmo calculará en segundos las potencias óptimas legales para tu nave (Tarifas 3.0TD y 6.1TD), eliminando el sobrecoste fijo y anulando al 100% las multas por energía reactiva." if es_espanol else "Enter your latest electricity bill data: the algorithm instantly computes the optimal legal capacity for your industrial facility (Tariffs 3.0TD & 6.1TD), eliminating excess fixed toll costs and zeroing out reactive penalties.",
     "cargar_caso": "📂 Cargar Escenario Industrial:" if es_espanol else "📂 Load Industrial Facility Preset:",
     "sec1_titulo": "1. Parámetros de Facturación del Suministro" if es_espanol else "1. Electricity Bill & Supply Point Parameters",
     "cups_lbl": "Código Unificado de Punto de Suministro (CUPS):" if es_espanol else "Supply Point Identification Code (CUPS):",
@@ -189,7 +190,7 @@ TEXTOS = {
     "meses": ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"] if es_espanol else ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 }
 
-# --- PRESETS DE PRUEBA (PERSONALIZADO SIEMPRE PRIMERO) ---
+# --- PRESETS DE PRUEBA (PERSONALIZADO POR DEFECTO EN EL ÍNDICE 0) ---
 PRESETS_DATA = {
     ("Personalizado (Mis datos de factura)" if es_espanol else "Custom Facility (My Invoice Data)"): {
         "tarifa": "3.0TD", "p_act": [60.0, 60.0, 60.0, 60.0, 60.0, 60.0],
@@ -282,7 +283,7 @@ if "selector_perfil" not in st.session_state or st.session_state.selector_perfil
     st.session_state.selector_perfil = lista_presets[0]
     cambiar_perfil()
 
-# --- TOP WORKBENCH BAR ---
+# --- TOP WORKBENCH BAR CON EXPLICACIÓN EN 2 LÍNEAS ---
 col_logo, col_preset = st.columns([2.6, 1.4])
 with col_logo:
     st.markdown(f"""
@@ -290,6 +291,9 @@ with col_logo:
         <span class="stat-badge stat-success">{TEXTOS['badge_top']}</span>
         <h1 style="font-size: 2.2rem; margin: 8px 0 2px 0; color: #ffffff;">{TEXTOS['titulo']}</h1>
         <p style="color: #94a3b8; margin: 0; font-size: 0.95rem;">{TEXTOS['subtitulo']}</p>
+        <p style="color: #e2e8f0; margin-top: 10px; font-size: 0.88rem; line-height: 1.45; border-top: 1px solid #334155; padding-top: 8px;">
+            💡 {TEXTOS['explicacion_rapida']}
+        </p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -351,7 +355,7 @@ with col_config:
             
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- ALGORITMO BOE (RECALCULA EN TIEMPO REAL CON LOS NÚMEROS DE LAS CASILLAS) ---
+# --- ALGORITMO BOE DINÁMICO ---
 def optimizar_potencias(maximetros, p_min=15.001):
     n = len(maximetros)
     p_res = [max(float(m), p_min) for m in maximetros]
